@@ -56,6 +56,79 @@ st.dataframe(
     hide_index=True
 )
 
+# Scoring Averages per Match (total strokes on 18 holes, front 9, back 9)
+st.subheader("Scoring Averages per Match")
+
+# Query to sum scores per match
+scores_query = """
+SELECT 
+    h.match_id,
+    m.date,
+    SUM(CASE WHEN h.hole_number <= 9 THEN h.rod_score ELSE 0 END) AS rod_front_total,
+    SUM(CASE WHEN h.hole_number > 9 THEN h.rod_score ELSE 0 END) AS rod_back_total,
+    SUM(h.rod_score) AS rod_total,
+    SUM(CASE WHEN h.hole_number <= 9 THEN h.jim_score ELSE 0 END) AS jim_front_total,
+    SUM(CASE WHEN h.hole_number > 9 THEN h.jim_score ELSE 0 END) AS jim_back_total,
+    SUM(h.jim_score) AS jim_total
+FROM Holes h
+JOIN Matches m ON h.match_id = m.match_id
+GROUP BY h.match_id
+ORDER BY m.date
+"""
+match_scores = pd.read_sql(scores_query, conn)
+
+if not match_scores.empty:
+    total_matches = len(match_scores)
+
+    rod_overall_avg = match_scores['rod_total'].mean()
+    jim_overall_avg = match_scores['jim_total'].mean()
+    rod_front_avg   = match_scores['rod_front_total'].mean()
+    jim_front_avg   = match_scores['jim_front_total'].mean()
+    rod_back_avg    = match_scores['rod_back_total'].mean()
+    jim_back_avg    = match_scores['jim_back_total'].mean()
+
+    # 4-column table data
+    avg_table_data = {
+        "Player": ["Rod", "Jim"],
+        "Avg Score per Match (18 holes)": [f"{rod_overall_avg:.1f}", f"{jim_overall_avg:.1f}"],
+        "Avg Front 9 Score": [f"{rod_front_avg:.1f}", f"{jim_front_avg:.1f}"],
+        "Avg Back 9 Score": [f"{rod_back_avg:.1f}", f"{jim_back_avg:.1f}"]
+    }
+
+    # Build HTML
+    html_avg = """
+    <table style="width:100%; max-width:800px; border-collapse: collapse; margin: 15px auto; font-family: Arial, sans-serif; font-size: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+        <tr style="background-color: #1B5E20; color: white;">
+            <th style="border: 1px solid #388E3C; padding: 10px; text-align: left;">Player</th>
+            <th style="border: 1px solid #388E3C; padding: 10px; text-align: center;">Avg Score per Match (18 holes)</th>
+            <th style="border: 1px solid #388E3C; padding: 10px; text-align: center;">Avg Front 9 Score</th>
+            <th style="border: 1px solid #388E3C; padding: 10px; text-align: center;">Avg Back 9 Score</th>
+        </tr>
+    """
+    for i, row in enumerate(zip(
+        avg_table_data["Player"],
+        avg_table_data["Avg Score per Match (18 holes)"],
+        avg_table_data["Avg Front 9 Score"],
+        avg_table_data["Avg Back 9 Score"]
+    )):
+        bg = "#E8F5E9" if i % 2 == 1 else "white"
+        html_avg += f"""
+        <tr style="background-color: {bg};">
+            <td style="border: 1px solid #A5D6A7; padding: 10px; font-weight: bold;">{row[0]}</td>
+            <td style="border: 1px solid #A5D6A7; padding: 10px; text-align: center;">{row[1]}</td>
+            <td style="border: 1px solid #A5D6A7; padding: 10px; text-align: center;">{row[2]}</td>
+            <td style="border: 1px solid #A5D6A7; padding: 10px; text-align: center;">{row[3]}</td>
+        </tr>
+        """
+    html_avg += "</table>"
+
+    # THIS LINE MUST HAVE THE FLAG!
+    st.components.v1.html(html_avg, height=300, scrolling=False)
+    
+
+    st.caption(f"Based on {total_matches} full matches. Lower scores are better.")
+else:
+    st.info("No match score data available yet.")
 # Lifetime Summary
 st.subheader("Lifetime Summary")
 
