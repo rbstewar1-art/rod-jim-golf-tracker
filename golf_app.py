@@ -48,6 +48,17 @@ def calculate_summaries(hole_df):
 # Load matches - chronological order for history table
 matches_df = pd.read_sql('SELECT * FROM Matches ORDER BY date ASC', conn)
 
+# Add this after st.title("Rod vs Jim Golf Match Tracker")
+st.image(
+    "Jimothy.png",   # ← change to your image filename (must be in the same folder as golf_app.py)
+    caption="Jim - Chasing birdies since 2026 ⛳",  # optional caption
+    use_column_width=True  # makes it full-width, looks great
+)
+# Second image right below it
+st.image("Rod.jpg", 
+         caption="Rod Victorious in Bandon", 
+         use_column_width=True)
+
 # Match History (oldest first)
 st.subheader("Match History")
 st.dataframe(
